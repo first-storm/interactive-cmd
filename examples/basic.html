@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>interactive-cmd basic example</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      body {
+        margin: 0;
+        background: Canvas;
+        color: CanvasText;
+      }
+      main {
+        width: min(960px, calc(100vw - 32px));
+        margin: 32px auto;
+        display: grid;
+        gap: 16px;
+      }
+      label {
+        display: grid;
+        gap: 6px;
+        font-weight: 600;
+      }
+      input, textarea, button, pre {
+        font: 14px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+      input, textarea {
+        box-sizing: border-box;
+        width: 100%;
+        border: 1px solid color-mix(in srgb, CanvasText 25%, Canvas);
+        border-radius: 6px;
+        padding: 10px;
+        background: Canvas;
+        color: CanvasText;
+      }
+      textarea {
+        min-height: 190px;
+        resize: vertical;
+      }
+      button {
+        justify-self: start;
+        min-width: 88px;
+        border: 0;
+        border-radius: 6px;
+        padding: 10px 14px;
+        background: #2f6fed;
+        color: white;
+        cursor: pointer;
+      }
+      .outputs {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 16px;
+      }
+      pre {
+        min-height: 100px;
+        overflow: auto;
+        border: 1px solid color-mix(in srgb, CanvasText 18%, Canvas);
+        border-radius: 6px;
+        padding: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <label>
+        Command
+        <input id="command" value="sort | uniq -c | sort -rn">
+      </label>
+      <label>
+        stdin
+        <textarea id="stdin">banana
+apple
+banana
+orange
+apple
+banana
+pear
+orange
+</textarea>
+      </label>
+      <button id="run" type="button">Run</button>
+      <div class="outputs">
+        <label>stdout<pre id="stdout"></pre></label>
+        <label>stderr<pre id="stderr"></pre></label>
+        <label>code<pre id="code"></pre></label>
+      </div>
+    </main>
+    <script type="module">
+      import { runUnix } from "../dist/uutils-runner.js";
+
+      const command = document.querySelector("#command");
+      const stdin = document.querySelector("#stdin");
+      const stdout = document.querySelector("#stdout");
+      const stderr = document.querySelector("#stderr");
+      const code = document.querySelector("#code");
+      const button = document.querySelector("#run");
+
+      async function run() {
+        button.disabled = true;
+        stdout.textContent = "";
+        stderr.textContent = "";
+        code.textContent = "running";
+        try {
+          const result = await runUnix(command.value, stdin.value);
+          stdout.textContent = result.stdout;
+          stderr.textContent = result.stderr;
+          code.textContent = String(result.code);
+        } catch (error) {
+          stderr.textContent = error && error.stack ? error.stack : String(error);
+          code.textContent = "error";
+        } finally {
+          button.disabled = false;
+        }
+      }
+
+      button.addEventListener("click", run);
+      run();
+    </script>
+  </body>
+</html>
