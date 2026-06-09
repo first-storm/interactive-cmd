@@ -1,0 +1,20 @@
+{
+  "name": "interactive-cmd",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/uutils-runner.js --bundle --format=esm --platform=browser --target=es2022 --outfile=dist/uutils-runner.js",
+    "build:uutils": "bash scripts/build-uutils.sh",
+    "test": "node scripts/smoke-test.mjs",
+    "serve": "npx http-server . -p 4173 -c-1"
+  },
+  "dependencies": {
+    "@bjorn3/browser_wasi_shim": "^0.4.2"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "http-server": "^14.1.1",
+    "playwright": "^1.54.0"
+  }
+}
