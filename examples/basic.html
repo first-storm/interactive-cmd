@@ -87,7 +87,6 @@ orange
       <div class="outputs">
         <label>stdout<pre id="stdout"></pre></label>
         <label>stderr<pre id="stderr"></pre></label>
-        <label>code<pre id="code"></pre></label>
       </div>
     </main>
     <script type="module">
@@ -97,22 +96,18 @@ orange
       const stdin = document.querySelector("#stdin");
       const stdout = document.querySelector("#stdout");
       const stderr = document.querySelector("#stderr");
-      const code = document.querySelector("#code");
       const button = document.querySelector("#run");
 
       async function run() {
         button.disabled = true;
         stdout.textContent = "";
         stderr.textContent = "";
-        code.textContent = "running";
         try {
           const result = await runUnix(command.value, stdin.value);
           stdout.textContent = result.stdout;
           stderr.textContent = result.stderr;
-          code.textContent = String(result.code);
         } catch (error) {
           stderr.textContent = error && error.stack ? error.stack : String(error);
-          code.textContent = "error";
         } finally {
           button.disabled = false;
         }

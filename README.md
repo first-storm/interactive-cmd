@@ -1,6 +1,6 @@
 # interactive-cmd
 
-Run real [uutils coreutils](https://github.com/uutils/coreutils) commands in the browser. Executes coreutils commands and pipelines via WebAssembly — ideal for interactive tutorials, online playgrounds, and teaching environments.
+Run real command-line tools in the browser via [Biowasm/Aioli](https://biowasm.com/). Supports 66 programs across coreutils, bioinformatics, JSON processing, and more — all executing via WebAssembly in a sandboxed WebWorker.
 
 ## Quick Start
 
@@ -8,7 +8,7 @@ Import the runner via CDN — no install required:
 
 ```html
 <script type="module">
-  import { runUnix } from "https://cdn.jsdelivr.net/gh/first-storm/interactive-cmd@v0.1.0/dist/uutils-runner.js";
+  import { runUnix } from "https://cdn.jsdelivr.net/gh/first-storm/interactive-cmd@v0.2.0/dist/uutils-runner.js";
 
   const r1 = await runUnix("head -n 3", "a\nb\nc\nd\n");
   console.log(r1.stdout); // "a\nb\nc\n"
@@ -18,7 +18,7 @@ Import the runner via CDN — no install required:
 </script>
 ```
 
-> **Note:** The WASM file (`uutils.wasm`) must be served from the same directory as `uutils-runner.js`. When using the CDN, the WASM is loaded automatically from the same path.
+> **Note:** The WASM modules are loaded on demand from the [Biowasm CDN](https://biowasm.com/). Each command is fetched lazily only when first used.
 
 ## API
 
@@ -26,26 +26,50 @@ Import the runner via CDN — no install required:
 type RunResult = {
   stdout: string;
   stderr: string;
-  code: number;
 };
 
 async function runUnix(command: string, stdin?: string): Promise<RunResult>;
+
+function configure(options: { commands?: string[] }): void;
 ```
 
-### Parameters
+### `runUnix(command, stdin?)`
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `command` | `string` | Yes | Unix command to run, supports pipelines (`\|`) |
-| `stdin` | `string` | No | Data passed via standard input, defaults to `""` |
+| Parameter | Type     | Required | Description                                    |
+|-----------|----------|----------|------------------------------------------------|
+| `command` | `string` | Yes      | Unix command to run, supports pipelines (`\|`) |
+| `stdin`   | `string` | No       | Data passed via standard input, defaults to `""` |
+
+Returns `{ stdout, stderr }`. The `code` (exit code) field is not available since the underlying Biowasm runtime does not expose it.
+
+### `configure({ commands })`
+
+Restrict which commands are available. Must be called **before** the first `runUnix()` call — once the Aioli runtime is initialized, the command set cannot be changed.
+
+```js
+import { configure, runUnix } from "./dist/uutils-runner.js";
+
+// Only allow coreutils text processing commands
+configure({ commands: ["sort", "uniq", "head", "tail", "cat", "wc", "tr", "cut", "paste", "join", "comm", "fold", "seq", "shuf"] });
+
+await runUnix("sort | uniq -c", "...\n...\n"); // works
+
+await runUnix("samtools view ..."); // throws Error: Command not available: samtools
+```
+
+If `configure()` is never called, **all 66 commands** are available.
 
 ### Supported Commands
 
-Any command included in the bundled [uutils coreutils](https://github.com/uutils/coreutils) WASM binary is supported, along with pipelines joined with `|`.
+| Category           | Commands                                                                                        |
+|--------------------|-------------------------------------------------------------------------------------------------|
+| **Coreutils**      | `basename`, `cat`, `comm`, `cut`, `date`, `df`, `dirname`, `du`, `echo`, `env`, `fold`, `head`, `join`, `ls`, `md5sum`, `paste`, `seq`, `shuf`, `sort`, `tail`, `tee`, `tr`, `uniq`, `wc` |
+| **Text processing** | `grep`, `sed`, `gawk`, `jq`                                                                    |
+| **File utilities** | `find`, `tree`, `bsdunzip`                                                                     |
+| **Bioinformatics** | `samtools`, `bcftools`, `bedtools`, `seqtk`, `minimap2`, `bowtie2`, `fastp`, `mafft`, `muscle`, `kalign`, `fasttree`, `hyphy`, `gffread`, `gfatools`, `ivar`, `modbam2bed`, `ViralConsensus`, `wgsim`, `vidjil-algo`, `tn93`, `ssw`, `seq-align`, `mummer4`, `lsd2`, `bhtsne`, `ASTER`, `cawlign`, `lastz` |
+| **Genomics file utils** | `tabix`, `htsfile`, `bgzip`, `bigBedToBed`, `bigBedInfo`, `bigWigToWig`, `bigWigInfo`       |
 
-Common examples include `cat`, `head`, `tail`, `sort`, `uniq`, `wc`, `seq`, `printf`, `basename`, and `dirname`.
-
-This is not a full shell: commands run inside a browser WASI sandbox with an empty preopened filesystem, so commands that require host files, shell expansion, redirection, or environment access are intentionally limited.
+This is not a full shell: commands run inside a browser WebWorker sandbox with a virtual filesystem, so commands that require host files, shell expansion, redirection, or environment access are intentionally limited.
 
 ### Command Parser
 
@@ -56,8 +80,6 @@ The following shell syntax is intentionally rejected and will throw an error:
 ```
 >  <  ;  &&  $  *  ~  `
 ```
-
-Redirections, logical operators, command substitution, globs, and environment variables are not supported — this is by design to ensure safe execution in the browser sandbox.
 
 ## Full Example
 
@@ -80,14 +102,13 @@ banana</textarea></label>
   <pre id="out"></pre>
 
   <script type="module">
-    import { runUnix } from "https://cdn.jsdelivr.net/gh/first-storm/interactive-cmd@v0.1.0/dist/uutils-runner.js";
+    import { runUnix } from "https://cdn.jsdelivr.net/gh/first-storm/interactive-cmd@v0.2.0/dist/uutils-runner.js";
 
     document.getElementById("run").onclick = async () => {
       const cmd = document.getElementById("cmd").value;
       const stdin = document.getElementById("stdin").value;
-      const { stdout, stderr, code } = await runUnix(cmd, stdin);
-      document.getElementById("out").textContent =
-        code === 0 ? stdout : `exit ${code}\n${stderr}`;
+      const { stdout, stderr } = await runUnix(cmd, stdin);
+      document.getElementById("out").textContent = stderr ? stderr : stdout;
     };
   </script>
 </body>
@@ -100,11 +121,9 @@ See [`examples/basic.html`](examples/basic.html) for more.
 
 ### Prerequisites
 
-| Tool | Purpose | Minimum Version |
-|------|---------|-----------------|
-| **Node.js** | Build scripts and tests | 18+ |
-| **Rust + rustup** | Compile uutils coreutils to WASM | stable |
-| **Git** | Clone the uutils repository | — |
+| Tool       | Purpose                | Minimum Version |
+|------------|------------------------|-----------------|
+| **Node.js** | Build scripts and tests | 18+             |
 
 ### Install
 
@@ -119,45 +138,25 @@ npm install
 ```
 interactive-cmd/
 ├── src/
-│   └── uutils-runner.js      # Core runtime (command parsing + WASI execution)
+│   └── uutils-runner.js      # Core runtime (command parsing + Aioli execution)
 ├── dist/
-│   ├── uutils-runner.js      # esbuild output (browser ESM)
-│   └── uutils.wasm           # uutils coreutils WASM binary
-├── vendor/
-│   └── coreutils/            # uutils/coreutils source (auto-generated)
+│   └── uutils-runner.js      # esbuild output (browser ESM)
 ├── scripts/
-│   ├── build-uutils.sh       # WASM build script
 │   └── smoke-test.mjs        # Playwright smoke tests
 ├── examples/
 │   └── basic.html            # Interactive demo page
 └── package.json
 ```
 
-### Build
+Note: WASM modules are loaded from the Biowasm CDN at runtime — no local `.wasm` file is needed.
 
-**1. Bundle the Runner (JavaScript)**
+### Build
 
 ```bash
 npm run build
 ```
 
 Bundles `src/uutils-runner.js` into a browser ESM module at `dist/uutils-runner.js` using esbuild.
-
-**2. Compile WASM**
-
-```bash
-npm run build:uutils
-```
-
-This command will:
-
-1. Verify `rustup` is available
-2. Install the `wasm32-wasip1` compilation target
-3. Clone [uutils/coreutils](https://github.com/uutils/coreutils) into `vendor/coreutils/`
-4. Compile with the `release-small` profile (falls back to `--release` if unavailable)
-5. Copy the generated `.wasm` file to `dist/uutils.wasm`
-
-The first build takes a while depending on your hardware. Subsequent builds use the Cargo cache.
 
 ### Test
 
@@ -194,13 +193,11 @@ npm test
 npm run serve
 ```
 
-If you change the Rust build configuration or the uutils version, re-run `npm run build:uutils`.
-
 ## Publishing
 
 This project is distributed via [jsDelivr CDN](https://www.jsdelivr.com/). To publish a new version:
 
-1. Make sure `dist/` contains the latest `uutils-runner.js` and `uutils.wasm`
+1. Make sure `dist/` contains the latest `uutils-runner.js`
 2. Tag the release: `git tag v0.x.x`
 3. Push the tag: `git push --tags`
 4. The CDN automatically picks up assets from the GitHub release
@@ -208,5 +205,5 @@ This project is distributed via [jsDelivr CDN](https://www.jsdelivr.com/). To pu
 CDN URL format:
 
 ```
-https://cdn.jsdelivr.net/gh/first-storm/interactive-cmd@v0.1.0/dist/uutils-runner.js
+https://cdn.jsdelivr.net/gh/first-storm/interactive-cmd@v0.2.0/dist/uutils-runner.js
 ```
