@@ -1,10 +1,10 @@
 {
   "name": "interactive-cmd",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "esbuild src/uutils-runner.js --bundle --format=esm --platform=browser --target=es2022 --outfile=dist/uutils-runner.js",
+    "build": "esbuild src/runner.js --bundle --format=esm --platform=browser --target=es2022 --outfile=dist/runner.js",
     "test": "node scripts/smoke-test.mjs",
     "serve": "npx http-server . -p 4173 -c-1"
   },

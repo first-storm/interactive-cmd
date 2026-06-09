@@ -5,10 +5,10 @@ import { extname, join, resolve } from "node:path";
 import { chromium } from "playwright";
 
 const root = resolve(new URL("..", import.meta.url).pathname);
-const distRunner = join(root, "dist/uutils-runner.js");
+const distRunner = join(root, "dist/runner.js");
 
 if (!existsSync(distRunner)) {
-  throw new Error("dist/uutils-runner.js is missing; run npm run build first");
+  throw new Error("dist/runner.js is missing; run npm run build first");
 }
 
 const fixtures = [
@@ -38,7 +38,7 @@ try {
   page.setDefaultTimeout(120000);
   await page.goto(`http://127.0.0.1:${port}/examples/basic.html`);
   const results = await page.evaluate(async ({ tests, errors }) => {
-    const { runUnix } = await import("/dist/uutils-runner.js");
+    const { runUnix } = await import("/dist/runner.js");
     const out = [];
     for (const [command, stdin, expected] of tests) {
       try {

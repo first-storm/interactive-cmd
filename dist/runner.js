@@ -259,7 +259,7 @@ var Q = class {
   }
 };
 
-// src/uutils-runner.js
+// src/runner.js
 var COMMAND_REGISTRY = {
   "astral": { tool: "ASTER", version: "1.23", program: "astral" },
   "astral-pro": { tool: "ASTER", version: "1.23", program: "astral-pro" },

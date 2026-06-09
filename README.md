@@ -1,6 +1,6 @@
 # interactive-cmd
 
-Run real command-line tools in the browser via [Biowasm/Aioli](https://biowasm.com/). Supports 66 programs across coreutils, bioinformatics, JSON processing, and more — all executing via WebAssembly in a sandboxed WebWorker.
+Run real command-line tools in the browser via [Biowasm/Aioli](https://biowasm.com/). Supports 76 programs across coreutils, bioinformatics, JSON processing, and more — all executing via WebAssembly in a sandboxed WebWorker.
 
 ## Quick Start
 
@@ -8,7 +8,7 @@ Import the runner via CDN — no install required:
 
 ```html
 <script type="module">
-  import { runUnix } from "https://cdn.jsdelivr.net/gh/first-storm/interactive-cmd@v0.2.0/dist/uutils-runner.js";
+  import { runUnix } from "https://cdn.jsdelivr.net/gh/first-storm/interactive-cmd@v0.3.0/dist/runner.js";
 
   const r1 = await runUnix("head -n 3", "a\nb\nc\nd\n");
   console.log(r1.stdout); // "a\nb\nc\n"
@@ -47,7 +47,7 @@ Returns `{ stdout, stderr }`. The `code` (exit code) field is not available sinc
 Restrict which commands are available. Must be called **before** the first `runUnix()` call — once the Aioli runtime is initialized, the command set cannot be changed.
 
 ```js
-import { configure, runUnix } from "./dist/uutils-runner.js";
+import { configure, runUnix } from "./dist/runner.js";
 
 // Only allow coreutils text processing commands
 configure({ commands: ["sort", "uniq", "head", "tail", "cat", "wc", "tr", "cut", "paste", "join", "comm", "fold", "seq", "shuf"] });
@@ -57,7 +57,7 @@ await runUnix("sort | uniq -c", "...\n...\n"); // works
 await runUnix("samtools view ..."); // throws Error: Command not available: samtools
 ```
 
-If `configure()` is never called, **all 66 commands** are available.
+If `configure()` is never called, **all 76 commands** are available.
 
 ### Supported Commands
 
@@ -102,7 +102,7 @@ banana</textarea></label>
   <pre id="out"></pre>
 
   <script type="module">
-    import { runUnix } from "https://cdn.jsdelivr.net/gh/first-storm/interactive-cmd@v0.2.0/dist/uutils-runner.js";
+    import { runUnix } from "https://cdn.jsdelivr.net/gh/first-storm/interactive-cmd@v0.3.0/dist/runner.js";
 
     document.getElementById("run").onclick = async () => {
       const cmd = document.getElementById("cmd").value;
@@ -138,9 +138,9 @@ npm install
 ```
 interactive-cmd/
 ├── src/
-│   └── uutils-runner.js      # Core runtime (command parsing + Aioli execution)
+│   └── runner.js             # Core runtime (command parsing + Aioli execution)
 ├── dist/
-│   └── uutils-runner.js      # esbuild output (browser ESM)
+│   └── runner.js             # esbuild output (browser ESM)
 ├── scripts/
 │   └── smoke-test.mjs        # Playwright smoke tests
 ├── examples/
@@ -156,7 +156,7 @@ Note: WASM modules are loaded from the Biowasm CDN at runtime — no local `.was
 npm run build
 ```
 
-Bundles `src/uutils-runner.js` into a browser ESM module at `dist/uutils-runner.js` using esbuild.
+Bundles `src/runner.js` into a browser ESM module at `dist/runner.js` using esbuild.
 
 ### Test
 
@@ -183,7 +183,7 @@ Open `http://127.0.0.1:4173/examples/basic.html` to see the interactive demo.
 ### Typical Workflow
 
 ```bash
-# Rebuild after editing src/uutils-runner.js
+# Rebuild after editing src/runner.js
 npm run build
 
 # Run tests
@@ -197,7 +197,7 @@ npm run serve
 
 This project is distributed via [jsDelivr CDN](https://www.jsdelivr.com/). To publish a new version:
 
-1. Make sure `dist/` contains the latest `uutils-runner.js`
+1. Make sure `dist/` contains the latest `runner.js`
 2. Tag the release: `git tag v0.x.x`
 3. Push the tag: `git push --tags`
 4. The CDN automatically picks up assets from the GitHub release
@@ -205,5 +205,5 @@ This project is distributed via [jsDelivr CDN](https://www.jsdelivr.com/). To pu
 CDN URL format:
 
 ```
-https://cdn.jsdelivr.net/gh/first-storm/interactive-cmd@v0.2.0/dist/uutils-runner.js
+https://cdn.jsdelivr.net/gh/first-storm/interactive-cmd@v0.3.0/dist/runner.js
 ```
