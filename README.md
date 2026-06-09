@@ -1,6 +1,6 @@
 # interactive-cmd
 
-Run real [uutils coreutils](https://github.com/uutils/coreutils) commands in the browser. Executes `head`, `sort`, `uniq`, `wc`, `cat`, `tail`, and pipelines via WebAssembly — ideal for interactive tutorials, online playgrounds, and teaching environments.
+Run real [uutils coreutils](https://github.com/uutils/coreutils) commands in the browser. Executes coreutils commands and pipelines via WebAssembly — ideal for interactive tutorials, online playgrounds, and teaching environments.
 
 ## Quick Start
 
@@ -41,7 +41,11 @@ async function runUnix(command: string, stdin?: string): Promise<RunResult>;
 
 ### Supported Commands
 
-`head`, `tail`, `sort`, `uniq`, `wc`, `cat`, and any pipeline of these commands joined with `|`.
+Any command included in the bundled [uutils coreutils](https://github.com/uutils/coreutils) WASM binary is supported, along with pipelines joined with `|`.
+
+Common examples include `cat`, `head`, `tail`, `sort`, `uniq`, `wc`, `seq`, `printf`, `basename`, and `dirname`.
+
+This is not a full shell: commands run inside a browser WASI sandbox with an empty preopened filesystem, so commands that require host files, shell expansion, redirection, or environment access are intentionally limited.
 
 ### Command Parser
 
@@ -167,7 +171,7 @@ The smoke test:
 2. Launches Playwright Chromium and loads `examples/basic.html`
 3. Executes `runUnix()` in the browser and asserts exact stdout output
 
-Covered commands: `head`, `tail`, `sort`, `uniq`, `wc`, `cat`, and multi-stage pipelines.
+Covered commands include `head`, `tail`, `sort`, `uniq`, `wc`, `cat`, and multi-stage pipelines.
 
 ### Local Preview
 
