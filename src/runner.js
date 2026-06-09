@@ -81,6 +81,9 @@ const COMMAND_REGISTRY = {
 
 const NEEDS_REINIT = new Set(["sed"]);
 const AIOLI_BASE_PROGRAM = "cat";
+const IGNORED_RUNTIME_STDERR_LINES = new Set([
+  "warning: unsupported syscall: __sys_prlimit64",
+]);
 
 let commandFilterSet = null;
 let runQueue = Promise.resolve();
@@ -131,7 +134,7 @@ async function execPipeline(stages, stdin) {
     const raw = await cli.exec(programName, args.length > 0 ? args : null);
     const result = typeof raw === "string"
       ? { stdout: raw, stderr: "" }
-      : { stdout: raw.stdout || "", stderr: raw.stderr || "" };
+      : { stdout: raw.stdout || "", stderr: sanitizeStderr(raw.stderr || "") };
     last = result;
     input = result.stdout;
   }
@@ -258,4 +261,14 @@ function isUnsupportedShellChar(ch) {
   return ch === ">" || ch === "<" || ch === ";" || ch === "&" || ch === "$" || ch === "*" || ch === "~" || ch === "`";
 }
 
-export const __testing = { parsePipeline, tokenize, COMMAND_REGISTRY, getAioliEntries };
+function sanitizeStderr(stderr) {
+  if (!stderr) {
+    return "";
+  }
+  return stderr
+    .split("\n")
+    .filter(line => !IGNORED_RUNTIME_STDERR_LINES.has(line.trim()))
+    .join("\n");
+}
+
+export const __testing = { parsePipeline, tokenize, COMMAND_REGISTRY, getAioliEntries, sanitizeStderr };

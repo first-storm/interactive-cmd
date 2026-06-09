@@ -340,6 +340,9 @@ var COMMAND_REGISTRY = {
 };
 var NEEDS_REINIT = /* @__PURE__ */ new Set(["sed"]);
 var AIOLI_BASE_PROGRAM = "cat";
+var IGNORED_RUNTIME_STDERR_LINES = /* @__PURE__ */ new Set([
+  "warning: unsupported syscall: __sys_prlimit64"
+]);
 var commandFilterSet = null;
 var runQueue = Promise.resolve();
 var hasRun = false;
@@ -382,7 +385,7 @@ async function execPipeline(stages, stdin) {
     const cli = await initAioli(programName);
     cli.stdin = input;
     const raw = await cli.exec(programName, args.length > 0 ? args : null);
-    const result = typeof raw === "string" ? { stdout: raw, stderr: "" } : { stdout: raw.stdout || "", stderr: raw.stderr || "" };
+    const result = typeof raw === "string" ? { stdout: raw, stderr: "" } : { stdout: raw.stdout || "", stderr: sanitizeStderr(raw.stderr || "") };
     last = result;
     input = result.stdout;
   }
@@ -485,7 +488,13 @@ function tokenize(command) {
 function isUnsupportedShellChar(ch) {
   return ch === ">" || ch === "<" || ch === ";" || ch === "&" || ch === "$" || ch === "*" || ch === "~" || ch === "`";
 }
-var __testing = { parsePipeline, tokenize, COMMAND_REGISTRY, getAioliEntries };
+function sanitizeStderr(stderr) {
+  if (!stderr) {
+    return "";
+  }
+  return stderr.split("\n").filter((line) => !IGNORED_RUNTIME_STDERR_LINES.has(line.trim())).join("\n");
+}
+var __testing = { parsePipeline, tokenize, COMMAND_REGISTRY, getAioliEntries, sanitizeStderr };
 export {
   __testing,
   configure,

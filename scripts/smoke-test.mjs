@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { extname, join, resolve } from "node:path";
 import { chromium } from "playwright";
+import { __testing } from "../src/runner.js";
 
 const root = resolve(new URL("..", import.meta.url).pathname);
 const distRunner = join(root, "dist/runner.js");
@@ -27,6 +28,17 @@ const errorFixtures = [
   ["sort && uniq", "unsupported shell syntax: &"],
   ["grep 'unterminated", "unterminated ' quote"]
 ];
+
+const noisyStderr = [
+  "warning: unsupported syscall: __sys_prlimit64",
+  "sort: cannot read: missing: No such file or directory",
+  "warning: unsupported syscall: __sys_prlimit64",
+  ""
+].join("\n");
+const sanitizedStderr = __testing.sanitizeStderr(noisyStderr);
+if (sanitizedStderr !== "sort: cannot read: missing: No such file or directory\n") {
+  throw new Error(`sanitizeStderr preserved unexpected output: ${JSON.stringify(sanitizedStderr)}`);
+}
 
 const server = createStaticServer(root);
 await new Promise(resolveListen => server.listen(0, "127.0.0.1", resolveListen));
